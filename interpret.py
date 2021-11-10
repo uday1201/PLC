@@ -23,7 +23,7 @@ procedures.
 """
 
 
-from heapmodule import *   # import the contents of the  heapmodule.py  module 
+from heapmodule import *   # import the contents of the  heapmodule.py  module
 
 
 ### INTERPRETER FUNCTIONS, one for each class of parse tree listed above.
@@ -56,7 +56,17 @@ def interpretDTREE(d) :
        post:  heap is updated with  d
     """
     ### WRITE ME
-    pass
+    decType = d[0]
+    handle, field = interpretLTREE(d[1])
+    if not (handle == activeNS()):
+        handle = activeNS()
+    if decType == "int": # ["int", I, ETREE]
+        rval = interpretETREE(d[2])
+        declare(handle,field,rval)
+    elif decType == "proc": # ["proc",I,ILIST,CLIST]
+        rval = allocateClosure(handle,field,[decType,d[2],d[3],handle])
+        declare(handle,field,rval)
+    else: crash(d,"invalid declaration")
 
 
 def interpretCLIST(clist) :
@@ -70,35 +80,53 @@ def interpretCLIST(clist) :
 
 def interpretCTREE(c) :
     """pre: c  is a command represented as a CTREE:
-       CTREE ::=  ["=", LTREE, ETREE]  |  ["if", ETREE, CLIST, CLIST2] 
-        |  ["print", LTREE] 
+       CTREE ::=  ["=", LTREE, ETREE]  |  ["if", ETREE, CLIST, CLIST2]
+        |  ["print", LTREE]
        post:  heap  holds the updates commanded by  c
     """
     operator = c[0]
     if operator == "=" :   # , ["=", LTREE, ETREE]
-        handle, field = interpretLTREE(c[1])  # returns (handle,field) pair
+        handle, field = interpretLTREE(c[1])
         rval = interpretETREE(c[2])
         update(handle, field, rval)
     elif operator == "print" :   # ["print", LTREE]
         print(interpretETREE(c[1]))
-        printHeap()
     elif operator == "if" :   # ["if", ETREE, CLIST1, CLIST2]
         test = interpretETREE(c[1])
         if test != 0 :
             interpretCLIST(c[2])
         else :
             interpretCLIST(c[3])
+    elif operator == "call" : # ["call",ID,ELIST]
+        handle, proc_name = interpretLTREE(c[1])
+        # 2. look up all the following from p's handle
+        param_list = lookup(handle, 'params')
+        cmd_list = lookup(handle, 'body')
+
+        # 4.
+        newNS = allocateNS()
+        pushHandle(newNS) # for example activation_stack = ['h0', 'h2']
+        heap[newNS]['parentns'] = ...
+        #evaluate EL=c[2] to a list of values
+        if len(param_list) == len(c[2]):
+            for param, e in zip(param_list, c[2]):
+                v = interpretETREE(e)
+                heap[newNS][param] = declare(newNS,i,v)  # heap = {..., 'h2': {'a': 1, 'b':2}} if proc p(a, b):...end p (1, 2)
+
+        interpretCLIST(cl)
+        popHandle()
+
     else :  crash(c, "invalid command")
 
 
 def interpretETREE(etree) :
     """interpretETREE computes the meaning of an expression operator tree.
-         ETREE ::=  NUM  |  [OP, ETREE, ETREE] |  ["deref", LTREE] 
+         ETREE ::=  NUM  |  [OP, ETREE, ETREE] |  ["deref", LTREE]
          OP ::= "+" | "-"
         post: updates the heap as needed and returns the  etree's value
     """
     if isinstance(etree, str) and etree.isdigit() :  # NUM  -- string of digits
-      ans = int(etree) 
+      ans = int(etree)
     elif  etree[0] in ("+", "-") :    # [OP, ETREE, ETREE]
         ans1 = interpretETREE(etree[1])
         ans2 = interpretETREE(etree[2])
@@ -120,7 +148,7 @@ def interpretLTREE(ltree) :
           LTREE ::=  ID
        post: returns a pair,  (handle,varname),  the L-value of  ltree
     """
-    if isinstance(ltree, str) and  ltree[0].isalpha()  :  #  ID 
+    if isinstance(ltree, str) and  ltree[0].isalpha()  :  #  ID
         ans = (activeNS(), ltree)   # use the handle to the active namespace
     else :
         crash(ltree, "illegal L-value")
@@ -136,7 +164,3 @@ def crash(tree, message) :
     print("Crash!")
     printHeap()
     raise Exception   # stops the interpreter
-
-
-
-

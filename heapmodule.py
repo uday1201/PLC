@@ -30,41 +30,51 @@
 
         is an example heap, where handle "h0" names a namespace
         whose  "x"  field holds int 7, "y" field holds int 1,
-        "z" holds int 2, and 'p' holds a handle to a closure saved at 'h1'. 
+        "z" holds int 2, and 'p' holds a handle to a closure saved at 'h1'.
 """
 
 heap = {}
 
 heap_count = 0  # how many objects stored in the heap
 
-ns = ""  # This is the handle to the namespace in the heap that holds the
+activationStack = []  # This is the handle to the namespace in the heap that holds the
          # program's global variables.  See  initializeHeap  below.
 
 ### Maintenance functions for  heap  and  heap_count:
+def pushNS(newNS):
+    activationStack.append(newNS)
+
+def popNS():
+    if isEmptyNS():
+        raise Exception
+    return activationStack.pop()
+
+def isEmptyNS():
+    return len(activationStack)==0
+
+def topNS():
+    if isEmptyNS():
+        raise Exception
+    return activationStack[-1]
 
 def activeNS():
-    """returns the handle of the namespace that holds the currently visible
-       program variables
-    """
-    return ns
-
+    return topNS()
 
 def initializeHeap():
     """resets the heap for a new program"""
     global heap_count, heap, ns
-    heap_count = 0
-    heap = {}
-    ns = allocateNS()  # create namespace in  heap  for global variables
+    handle = allocateNS()  # create namespace in  heap  for global variables
+    heap[handle]['parentns'] = 'nil'
+    pushNS(allocateNS())
 
-
-def printHeap(): 
+def printHeap():
     """prints contents of  ns  and  heap"""
-    print("namespace =", ns)
+    print("namespace =", activationStack)
 
     print("heap = {")
     handles = sorted(heap.keys())
     # handles.sort()
-    for h in handles: 
+    for h in handles:
         print(" ", h, ":", heap[h])
     print("}")
 
@@ -77,6 +87,15 @@ def allocateNS() :
     heap_count = heap_count + 1
     return newloc
 
+def allocateClosure(handle,field,closure):
+    """allocates a new closure that holds IL, CL, and the parent namespace
+       returns: the location of the newly created closure
+    """
+    global heap_count
+    newloc = "h" + str(heap_count)
+    heap[newloc] = closure
+    heap_count = heap_count + 1
+    return newloc
 
 def isLValid(handle, field):
     """checks if  (handle, field)  is a valid L-value, that is, checks
@@ -107,8 +126,10 @@ def declare(handle, field, rval) :
                rval -- an int or a handle
     """
     ## WRITE ME:
-    pass
-    
+    if isLValid(handle,field): # variable already exists
+        crash("redeclaration of variable " + field)
+    heap[handle][field] = rval
+
 
 def update(handle, field, rval) :
     """updates  rval  at heap[handle][field], provided that
