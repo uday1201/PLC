@@ -99,7 +99,7 @@ def allocateNS() :
     """allocates a new, empty namespace in the heap and returns its handle"""
     global heap_count
     newloc = "h" + str(heap_count)  # generate handle of form,  hn,  where  n  is an int
-    heap[newloc] = {}
+    heap[newloc] = {'parentns': 'h0'}
     heap_count = heap_count + 1
     return newloc
 
@@ -144,8 +144,21 @@ def update(handle, field, rval) :
                 rval -- an int or a handle
     """
     ## REVISE THE FOLLOWING CODE TO MATCH THE ABOVE DOCUMENTATION:
+    if not isLValid(handle, field): # variable not declared
+        crash("unknown variable")
+    if not isinstance(rval, type(heap[handle][field])): # type of rval doesn't match type of heap[handle][field]
+        crash("variable types do not match")
     heap[handle][field] = rval
 
+def lookupClosure(handle):
+    """looks up the closure at the given handle in the heap
+       param: handle -- the handle where the closure is stored in the heap
+       returns: returns the closure located at the given handle
+    """
+    clos = heap[handle]
+    if not isinstance(clos,list):
+        crash("invalid lookup address: " + handle)
+    return heap[handle]
 
 def crash(message) :
     """prints message and stops execution"""
