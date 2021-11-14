@@ -41,6 +41,13 @@ activationStack = []  # This is the handle to the namespace in the heap that hol
          # program's global variables.  See  initializeHeap  below.
 
 ### Maintenance functions for  heap  and  heap_count:
+
+def isEmptyNS():
+  """check whether activation stack is empty or not"""
+  global activation_stack
+  # WRITE ME
+  return len(activationStack)==0
+
 def pushNS(newNS):
     activationStack.append(newNS)
 
@@ -48,9 +55,6 @@ def popNS():
     if isEmptyNS():
         raise Exception
     return activationStack.pop()
-
-def isEmptyNS():
-    return len(activationStack)==0
 
 def topNS():
     if isEmptyNS():
@@ -60,20 +64,32 @@ def topNS():
 def activeNS():
     return topNS()
 
+def declare(handle, field, rval) :
+    """creates a new definition in the heap at (handle, field) and initializes
+       it with rval, provided that  heap[handle][field] does not already exist!
+       (else crashes with a "redeclaration error")
+
+       params: handle, field, as described above
+               rval -- an int or a handle
+    """
+    ## WRITE ME:
+    if isLValid(handle,field): # variable already exists
+        crash("redeclaration of variable " + field)
+    heap[handle][field] = rval
+
 def initializeHeap():
     """resets the heap for a new program"""
     global heap_count, heap, ns
     handle = allocateNS()  # create namespace in  heap  for global variables
     heap[handle]['parentns'] = 'nil'
-    pushNS(allocateNS())
+    pushNS(handle)
 
 def printHeap():
     """prints contents of  ns  and  heap"""
-    print("namespace =", activationStack)
+    print("activation stack =", activationStack)
 
     print("heap = {")
     handles = sorted(heap.keys())
-    # handles.sort()
     for h in handles:
         print(" ", h, ":", heap[h])
     print("}")
@@ -115,20 +131,6 @@ def lookup(handle, field) :
         return  heap[handle][field]
     else :
         crash("invalid lookup address: " + handle + " " + field)
-
-
-def declare(handle, field, rval) :
-    """creates a new definition in the heap at (handle, field) and initializes
-       it with rval, provided that  heap[handle][field] does not already exist!
-       (else crashes with a "redeclaration error")
-
-       params: handle, field, as described above
-               rval -- an int or a handle
-    """
-    ## WRITE ME:
-    if isLValid(handle,field): # variable already exists
-        crash("redeclaration of variable " + field)
-    heap[handle][field] = rval
 
 
 def update(handle, field, rval) :
