@@ -99,7 +99,7 @@ def allocateNS() :
     """allocates a new, empty namespace in the heap and returns its handle"""
     global heap_count
     newloc = "h" + str(heap_count)  # generate handle of form,  hn,  where  n  is an int
-    heap[newloc] = {'parentns': 'h0'}
+    heap[newloc] = {}
     heap_count = heap_count + 1
     return newloc
 

@@ -61,13 +61,11 @@ def interpretDTREE(d) :
     if not (handle == activeNS()):
         handle = activeNS()
     """
-    handle = activeNS()
-    handle, field = interpretLTREE(d[1])
-    if not (handle == activeNS()):
-        handle = activeNS()
+    active_ns = activeNS()
+    #handle, field = interpretLTREE(d[1])
     if d[0] == "int": # ["int", I, ETREE]
         val = interpretETREE(d[2])
-        declare(handle,field,val)
+        declare(active_ns,d[1],val)
     ### HINT METHOD
     elif d[0] == 'proc':
         # closure = {"body": d[4], "params": d[2], "type": d[0], "link":active_ns}
@@ -75,25 +73,15 @@ def interpretDTREE(d) :
         proc_name = d[1]
         param_list = d[2]
         cmd_list = d[4]
-        #handle = allocateNS() # heap[handle] = {} heap = {"h0":{...}, "h1":{}}
-        val = allocateClosure(handle,field,[d[0],param_list,d[3],handle])#remove here handle field#just add dic
-        #val = interpretETREE(d[2])
-        declare(handle,field,val) # heap = {active_ns: {..., proc_name:handle, ...}}
-        heap[handle]['type'] = 'proc'
-        heap[handle]['params'] = param_list
-        heap[handle]['local'] = d[3]
-        heap[handle]['body'] = cmd_list
-        heap[handle]['link'] = activeNS()
-        heap[handle]['parentns'] = handle
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print(d[0])
-        print(d[1])
-        print(d[2])
-        print(d[3])
-        print(d[4])
-        print(activeNS())
-        print(handle)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        closure_handle = allocateNS() # heap[handle] = {} heap = {"h0":{...}, "h1":{}}
+        ###########
+        declare(active_ns,proc_name,closure_handle) # heap = {active_ns: {..., proc_name:handle, ...}}
+        heap[closure_handle]['type'] = 'proc'
+        heap[closure_handle]['params'] = param_list
+        heap[closure_handle]['local'] = d[3]
+        heap[closure_handle]['body'] = cmd_list
+        heap[closure_handle]['link'] = activeNS()
+        #heap[handle]['parentns'] = activeNS()
     else: crash(d,"invalid declaration")
 
 
@@ -119,6 +107,7 @@ def interpretCTREE(c) :
         update(handle, field, rval)
     elif operator == "print" :   # ["print", LTREE]
         print(interpretETREE(c[1]))
+        printHeap()
     elif operator == "if" :   # ["if", ETREE, CLIST1, CLIST2]
         test = interpretETREE(c[1])
         if test != 0 :
@@ -147,7 +136,7 @@ def interpretCTREE(c) :
             # extract procedure commands (body)
             cmd_list = lookup(closure_handle, 'body')
             # extract link, where this procedure is defined
-            parent_ns = lookup(closure_handle, 'parent_ns')
+            parent_ns = lookup(closure_handle, 'link')
 
         # step (ii) evaluate EL to a list of values
         params_vals = []
@@ -162,7 +151,7 @@ def interpretCTREE(c) :
         # bind the values from EL to the corresponding names in IL. (Make certain that the number of arguments in EL equals the number of parameters in IL. Otherwise, it's an error that prints a message and stops execution).
 
         # Within the new namespace, bind parentns to the handle extracted from the closure;
-        heap[new_ns]["parentns"] = closure_handle
+        heap[new_ns]["parentns"] = parent_ns
 
         # bind the values from EL to the corresponding names in IL. (Make certain that the number of arguments in EL equals the number of parameters in IL. Otherwise, it's an error that prints a message and stops execution).
         if len(params_list) != len(params_vals):
@@ -172,8 +161,7 @@ def interpretCTREE(c) :
                 heap[new_ns][param] = val
 
         #  step (v) Push the new namespace's handle onto the activation stack, execute CL, and upon completion pop the activation stack.
-        pushHandle(new_ns)
-        print("--------------------->" + activation_stack)
+        pushNS(new_ns)
 
         # execute CL,
         interpretCLIST(cmd_list)
@@ -216,8 +204,21 @@ def interpretLTREE(ltree) :
           LTREE ::=  ID
        post: returns a pair,  (handle,varname),  the L-value of  ltree
     """
+    # WRITE ME: MODIFY THE FUCNTION
     if isinstance(ltree, str) and  ltree[0].isalpha()  :  #  ID
-        ans = (activeNS(), ltree)   # use the handle to the active namespace
+     # if ltree is a valid variable name, then we need to check whether this ltree
+     # can be found or not in the current active namespace
+
+     # find the current active namespace
+     active_ns = activeNS()
+     # then check whether ltree in heap[active_ns] or not
+     # if ltree not in heap[active_ns], then parent_ns = heap[active_ns]["parentns"], check whether ltree is in heap[parent_ns] or not
+     if ltree in heap[active_ns]:
+         ans = (active_ns, ltree)
+     else:
+        parent_ns = heap[active_ns]['parentns']
+        if ltree in heap[parent_ns]:
+            ans = (parent_ns, ltree)   # use the handle to the active namespace
     else :
         crash(ltree, "illegal L-value")
     return ans
