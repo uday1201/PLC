@@ -103,16 +103,6 @@ def allocateNS() :
     heap_count = heap_count + 1
     return newloc
 
-def allocateClosure(handle,field,closure):
-    """allocates a new closure that holds IL, CL, and the parent namespace
-       returns: the location of the newly created closure
-    """
-    global heap_count
-    newloc = "h" + str(heap_count)
-    heap[newloc] = closure
-    heap_count = heap_count + 1
-    return newloc
-
 def isLValid(handle, field):
     """checks if  (handle, field)  is a valid L-value, that is, checks
        that  heap[handle]  is a namespace  and   field  is found in it.
@@ -149,16 +139,6 @@ def update(handle, field, rval) :
     if not isinstance(rval, type(heap[handle][field])): # type of rval doesn't match type of heap[handle][field]
         crash("variable types do not match")
     heap[handle][field] = rval
-
-def lookupClosure(handle):
-    """looks up the closure at the given handle in the heap
-       param: handle -- the handle where the closure is stored in the heap
-       returns: returns the closure located at the given handle
-    """
-    clos = heap[handle]
-    if not isinstance(clos,list):
-        crash("invalid lookup address: " + handle)
-    return heap[handle]
 
 def crash(message) :
     """prints message and stops execution"""

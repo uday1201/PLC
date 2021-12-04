@@ -1,8 +1,8 @@
 
 import sys
 sys.path.append('../.') # add parent folder to  PYTHONPATH
-#if sys.version_info[0] >= 3:
-#    raw_input = input
+if sys.version_info[0] >= 3:
+    raw_input = input
 
 try:
     import a23pars
@@ -12,15 +12,15 @@ try:
     if len(sys.argv) == 2:
         text = open(sys.argv[1]).read()
     else :
-        # Read input program from terminal: 
+        # Read input program from terminal:
         print("Type program; OK to do it on multiple lines; terminate with  !")
         print("  as the first symbol on a line by itself:")
         print()
         text = ""
-        line = input("")
+        line = raw_input("")
         while line == ""  or  line[0] != "!" :
            text = text + " " + line + "\n"
-           line = input("")
+           line = raw_input("")
 
     tree = a23pars.parse(text)
     print("Parse tree:")
@@ -32,4 +32,3 @@ except:  # an error:
    traceback.print_exc()
 
 print(input("Press Enter key to terminate"))
-

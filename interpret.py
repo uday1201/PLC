@@ -82,6 +82,34 @@ def interpretDTREE(d) :
         heap[closure_handle]['body'] = cmd_list
         heap[closure_handle]['link'] = activeNS()
         #heap[handle]['parentns'] = activeNS()
+
+    #   PART C
+    #this function should be modified
+
+    elif d[0]=='ob': #["ob", ID, ETREE]
+
+        #handle,field=interpretLTREE(d[1])
+
+        #print('this is d[1] ID',d[1])
+
+        if (isinstance(d[2],str) and d[2]=="nil") or d[2][0]=="new":
+
+            val=interpretETREE(d[2]) #computes the meaning of ETREE
+
+            declare(active_ns,d[1],val) #binds I to the meaning in active namespace
+        else:
+            crash(d,"invalid onject type")
+
+    #PART - D
+    elif d[0] == "class" :   # ["class", ID, TTREE]
+        # WRITE ME
+        var=d[1]
+        closure_handle=allocateNS()
+        declare(active_ns,var,closure_handle)
+        heap[closure_handle]["body"] =d[2]
+        heap[closure_handle]["type"] = "class"
+        heap[closure_handle]["link"] = activeNS()
+
     else: crash(d,"invalid declaration")
 
 
@@ -143,7 +171,7 @@ def interpretCTREE(c) :
         for etree in c[2]:
             val = interpretETREE(etree)
             params_vals.append(val)
-
+        print(params_vals)
         # step (iii) Allocate a new namespace.
         new_ns = allocateNS()
 
@@ -195,30 +223,86 @@ def interpretETREE(etree) :
     elif  etree[0] == "deref" :    # ["deref", LTREE]
         handle, field = interpretLTREE(etree[1])
         ans = lookup(handle,field)
+    elif isinstance(etree,str) and (etree=="nil"): #checking whether the etree value is "nil" if it 'nil' then ans should be assigned to 'nil'
+        ans=etree
+    #2. implementing ['new',TTREE]
+    elif etree[0]=="new":
+        ans=interpretTTREE(etree[1])  #call the interpretTTREE(TTREE)
     else :  crash(etree, "invalid expression form")
     return ans
 
+
+def interpretTTREE(tree): #["struct",DLIST]
+
+    global activationStack
+    ans= ""
+
+    if tree[0]=="struct":
+        newNS = allocateNS()
+        declare(newNS,"parentns",activeNS())
+        pushNS(newNS)
+        interpretDLIST(tree[1]) #evaluating the DLIST
+        ans= popNS()  #this returns the top of the activation stack!
+
+    elif tree[0] == "call" :    # ["call", LTREE]
+        '''This works like procedure call, where
+         the closure labelled by the handle is extracted from the heap,
+         and provided that the closure holds a class,
+         the TTREE within the closure is extracted and executed.
+        '''
+        # (i) LTREE is computed to a class handle,
+        # the closure labelled by the handle is extracted from the heap
+
+        ns, className = interpretLTREE(tree[1])
+        classHandle = lookup(ns,className)
+
+        #provided that the closure holds a class,
+        if lookup(classHandle,"type")=="class":
+            # then the TTREE within the closure is extracted and executed.
+            body = lookup(classHandle,"body")
+
+            pushNS(ns)
+            ans=interpretTTREE(body)
+            popNS()
+            update(ans, "parentns", activeNS())
+
+        else:
+            crash(tree,"invalid classname")
+    else:
+        crash(tree,"tree is not a parser")
+    return ans
 
 def interpretLTREE(ltree) :
     """interpretLTREE computes the meaning of a lefthandside operator tree.
           LTREE ::=  ID
        post: returns a pair,  (handle,varname),  the L-value of  ltree
     """
+    ans = ""
     # WRITE ME: MODIFY THE FUCNTION
     if isinstance(ltree, str) and  ltree[0].isalpha()  :  #  ID
      # if ltree is a valid variable name, then we need to check whether this ltree
      # can be found or not in the current active namespace
 
      # find the current active namespace
-     active_ns = activeNS()
+        active_ns = activeNS()
      # then check whether ltree in heap[active_ns] or not
      # if ltree not in heap[active_ns], then parent_ns = heap[active_ns]["parentns"], check whether ltree is in heap[parent_ns] or not
-     if ltree in heap[active_ns]:
-         ans = (active_ns, ltree)
-     else:
-        parent_ns = heap[active_ns]['parentns']
-        if ltree in heap[parent_ns]:
-            ans = (parent_ns, ltree)   # use the handle to the active namespace
+        if ltree in heap[active_ns]:
+            ans = (active_ns, ltree)
+        else:
+            parent_ns = heap[active_ns]['parentns']
+            if ltree in heap[parent_ns]:
+                ans = (parent_ns, ltree)   # use the handle to the active namespace
+
+    elif isinstance(ltree, list) and ltree[0]=="dot": #["dot",LTREE,ID]
+        handle,name=interpretLTREE(ltree[1]) #evaluating ltree
+        h=lookup(handle,name) #checking whether it is available in heap or not
+
+        if isinstance(h,str):
+            ans=(h,ltree[2])
+        else:
+            crash(ltree,"not a legal value")
+
     else :
         crash(ltree, "illegal L-value")
     return ans
