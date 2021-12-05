@@ -171,7 +171,7 @@ def interpretCTREE(c) :
         for etree in c[2]:
             val = interpretETREE(etree)
             params_vals.append(val)
-        print(params_vals)
+        # print(params_vals)
         # step (iii) Allocate a new namespace.
         new_ns = allocateNS()
 
@@ -296,10 +296,10 @@ def interpretLTREE(ltree) :
 
     elif isinstance(ltree, list) and ltree[0]=="dot": #["dot",LTREE,ID]
         handle,name=interpretLTREE(ltree[1]) #evaluating ltree
-        h=lookup(handle,name) #checking whether it is available in heap or not
+        handle_=lookup(handle,name) #checking whether it is available in heap or not
 
-        if isinstance(h,str):
-            ans=(h,ltree[2])
+        if isinstance(handle_,str):
+            ans=(handle_,ltree[2])
         else:
             crash(ltree,"not a legal value")
 
